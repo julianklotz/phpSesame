@@ -220,7 +220,7 @@ class phpSesame
 	/**
 	 * Appends data to the selected repository
 	 *
-	 *
+	 * TODO: Test me!
 	 *
 	 * @param	string	$data			Data in the supplied format
 	 * @param	string	$context		The context the query should be run against
@@ -261,6 +261,8 @@ class phpSesame
 
 	/**
 	 * Overwrites data in the selected repository, can optionally take a context parameter
+	 *
+	 * TODO: Test me!
 	 *
 	 * @param	string	$data			Data in the supplied format
 	 * @param	string	$context		The context the query should be run against
@@ -314,6 +316,8 @@ class phpSesame
 	/**
 	 * Gets the namespace URL for the supplied prefix
 	 *
+	 * TODO: Test me!
+	 *
 	 * @param	string	$prefix			Data in the supplied format
 	 *
 	 * @return	string	The URL of the namespace
@@ -328,6 +332,7 @@ class phpSesame
 		}
 
 		$request =& new HTTP_Request2($this->dsn . '/repositories/' . $this->repository . '/namespaces/' . $prefix, HTTP_Request2::METHOD_GET);
+		$request = $this->prepareRequest($request);
 		$request->setHeader('Accept: text/plain');
 
 		$response = $request->send();
@@ -341,6 +346,8 @@ class phpSesame
 
 	/**
 	 * Sets the the namespace for the specified prefix
+	 *
+	 * TODO: Test me!
 	 *
 	 * @param	string	$prefix			Data in the supplied format
 	 * @param	string	$namespace		The context the query should be run against
@@ -367,7 +374,9 @@ class phpSesame
 	}
 
 	/**
-	 * Deletes the the namespace for the specified prefix
+	 * Deletes the namespace for the specified prefix
+	 *
+	 * TODO: Test me!
 	 *
 	 * @param	string	$prefix			Data in the supplied format
 	 */
@@ -392,6 +401,8 @@ class phpSesame
 
 	/**
 	 * Returns a list of all the contexts in the repository.
+	 *
+	 * TODO: Test me!
 	 *
 	 * @param	string	$resultFormat	Returned result format, see const definitions for supported list.
 	 *
@@ -418,6 +429,8 @@ class phpSesame
 	/**
 	 * Returns the size of the repository
 	 *
+	 * TODO: Test me!
+	 *
 	 * @param	string	$context		The context the query should be run against
 	 *
 	 * @return	int
@@ -441,6 +454,8 @@ class phpSesame
 
 	/**
 	 * Clears the repository
+	 *
+	 * TODO: Test me!
 	 *
 	 * Removes all data from the selected repository from ALL contexts.
 	 *
