@@ -18,7 +18,7 @@ require_once "resultFormats.php";
  *
  * Based on the phesame library, http://www.hjournal.org/phesame/
  *
- * @author Alex Latchford
+ * @author Alex Latchford, modifications by Julian Klotz
  * @version 0.1
  */
 class phpSesame
@@ -49,6 +49,19 @@ class phpSesame
 	private $repository;
 
 	/**
+	 * @var string the charset param to append to HTTP-Content-Type field
+	 */
+	private $queryEncoding = 'utf-8';
+	
+	/**
+	 * @var array The authentication data to use
+	 */
+	private $auth = array(
+		'user' => null,
+		'password' => null,
+	);
+
+	/**
 	 * 
 	 *
 	 * @param	string	$sesameUrl		Sesame server connection string
@@ -58,6 +71,18 @@ class phpSesame
 	{
 		$this->dsn = $sesameUrl;
 		$this->setRepository($repository);
+	}
+
+	/**
+	 * Sets the charset param that is appended to content type http header
+	 *
+	 * @param {String} $encoding The encoding string
+	 * @return {String} The encoding that was set
+	 */
+	public function setQueryEncoding($encoding)
+	{
+		$this->queryEncoding = $encoding;
+		return $this->queryEncoding;
 	}
 
 	/**
@@ -72,6 +97,19 @@ class phpSesame
 	}
 
 	/**
+	 * Set authentication data for requests.
+	 *
+	 * @param {string} $user The user name
+	 * @param {password} $password The password to use
+	 */
+	public function setAuth($user, $password) 
+	{
+		$this->auth['user'] = $user;
+		$this->auth['password'] = $password;
+		return $this->auth;
+	}
+
+	/**
 	 * Gets a list of all the available repositories on the Sesame installation
 	 *
 	 * @return	phpSesame_SparqlRes
@@ -79,6 +117,7 @@ class phpSesame
 	public function listRepositories()
 	{
 		$request =& new HTTP_Request2($this->dsn . '/repositories', HTTP_Request2::METHOD_GET);
+		$request = $this->prepareRequest($request);
 		$request->setHeader('Accept: ' . self::SPARQL_XML);
 
 		$response = $request->send();
@@ -162,7 +201,9 @@ class phpSesame
 		$this->checkResultFormat($resultFormat);
 
 		$request =& new HTTP_Request2($this->dsn . '/repositories/' . $this->repository, HTTP_Request2::METHOD_POST);
+		$request = $this->prepareRequest($request);
 		$request->setHeader('Accept: ' . self::SPARQL_XML);
+		$request->setHeader('Content-Type', 'application/x-www-form-urlencoded' . $this->getCharsetString());
 		$request->addPostParameter('query', $query);
 		$request->addPostParameter('queryLn', $queryLang);
 		$request->addPostParameter('infer', $infer);
@@ -192,7 +233,8 @@ class phpSesame
 		$this->checkInputFormat($inputFormat);
 		
 		$request =& new HTTP_Request2($this->dsn . '/repositories/' . $this->repository . '/statements?context=' . $context, HTTP_Request2::METHOD_POST);
-		$request->setHeader('Content-type: ' . $inputFormat);
+		$request = $this->prepareRequest($request);
+		$request->setHeader('Content-type: ' . $inputFormat . $this->getCharsetString());
 		$request->setBody($data);
 
 		$response = $request->send();
@@ -231,7 +273,8 @@ class phpSesame
 		$this->checkInputFormat($inputFormat);
 
 		$request =& new HTTP_Request2($this->dsn . '/repositories/' . $this->repository . '/statements?context=' . $context, HTTP_Request2::METHOD_PUT);
-		$request->setHeader('Content-type: ' . $inputFormat);
+		$request = $this->prepareRequest($request);
+		$request->setHeader('Content-type: ' . $inputFormat . $this->getCharsetString());
 		$request->setBody($data);
 
 		$response = $request->send();
@@ -312,7 +355,8 @@ class phpSesame
 		}
 
 		$request =& new HTTP_Request2($this->dsn . '/repositories/' . $this->repository . '/namespaces/' . $prefix, HTTP_Request2::METHOD_PUT);
-		$request->setHeader('Content-type: text/plain');
+		$request->setHeader('Content-type: text/plain' . $this->getCharsetString());
+		$request = $this->prepareRequest($request);
 		$request->setBody($namespace);
 
 		$response = $request->send();
@@ -337,6 +381,7 @@ class phpSesame
 		}
 
 		$request =& new HTTP_Request2($this->dsn . '/repositories/' . $this->repository . '/namespaces/' . $prefix, HTTP_Request2::METHOD_DELETE);
+		$request = $this->prepareRequest($request);
 
 		$response = $request->send();
 		if($response->getStatus() != 204)
@@ -358,6 +403,7 @@ class phpSesame
 		$this->checkResultFormat($resultFormat);
 
 		$request =& new HTTP_Request2($this->dsn . '/repositories/' . $this->repository . '/contexts', HTTP_Request2::METHOD_POST);
+		$request = $this->prepareRequest($request);
 		$request->setHeader('Accept: ' . self::SPARQL_XML);
 
 		$response = $request->send();
@@ -382,6 +428,7 @@ class phpSesame
 
 		$request =& new HTTP_Request2($this->dsn . '/repositories/' . $this->repository . '/size?context=' . $context, HTTP_Request2::METHOD_POST);
 		$request->setHeader('Accept: text/plain');
+		$request = $this->prepareRequest($request);
 
 		$response = $request->send();
 		if($response->getStatus() != 200)
@@ -404,12 +451,41 @@ class phpSesame
 	    $this->checkRepository();
 		
 		$request =& new HTTP_Request2($this->dsn . '/repositories/' . $this->repository . '/statements', HTTP_Request2::METHOD_DELETE);
+		$request = $this->prepareRequest($request);
 
 		$response = $request->send();
 		if($response->getStatus() != 204)
 		{
 			throw new Exception ('Failed to clear repository, HTTP response error: ' . $response->getStatus());
 		}
+	}
+	
+	/**
+	 * Returns that charset string for content type HTTP header field.
+	 *
+	 * @return {String} The charset string
+	 */
+	public function getCharsetString() 
+	{
+		return ";charset=" . $this->queryEncoding;
+	}
+
+
+	/**
+	 * Prepares a request object.
+	 *
+	 * @param		HTTP_Request2 The object to prepare
+	 * @return	HTTP_Request2 The prepared request object
+	 */
+	private function prepareRequest($request)
+	{
+		if($this->auth['user'] != null)
+		{
+			// TODO: Add support for other Authentication Methods.
+			// http://pear.php.net/package/HTTP_Request2/docs/latest/HTTP_Request2/HTTP_Request2.html
+			$request->setAuth($this->auth['user'], $this->auth['password']);
+		}
+		return $request;
 	}
 }
 ?>
